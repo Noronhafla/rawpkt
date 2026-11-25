@@ -40,7 +40,7 @@ def pseudo_header_v4(src: bytes, dst: bytes, proto: int, length: int) -> bytes:
     return struct.pack("!4s4sBBH", src, dst,0 , proto, length)
 
 def pseudo_header_v6(src: bytes, dst: bytes, next_header: int, length: int) -> bytes:
-    return struct.pack("!16s16I3xB", src, dst, length, next_header)
+    return struct.pack("!16s16sI3xB", src, dst, length, next_header)
 
 def _with_zeroed_field(data: bytes, offset: int) -> tuple[int, bytes]:
     expected = struct.unpack_from("!H", data, offset)[0]

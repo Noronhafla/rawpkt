@@ -1,6 +1,7 @@
 sequenceDiagram
   participant App as App (TUI/GUI)
   participant S as Sniffer
+  participant F as BackendFactory
   participant B as Backend
   participant D as Dissector
   participant L as Layers
@@ -9,16 +10,19 @@ sequenceDiagram
 
   App->>E: subscribe(callback)
   App->>S: start()
+  S->>F: open_backend(iface)
+  F-->>S: Backend (conforme o SO)
   S->>B: open()
+  B-->>S: linktype
   loop enquanto ativo
     S->>B: read()
     B-->>S: raw, ts
-    S->>D: dissect(raw, ts)
-    D->>L: Ethernet.parse
-    L-->>D: next_protocol (EtherType)
-    D->>L: IPv4.parse
-    L->>C: validar header IPv4
-    D->>L: TCP/UDP.parse
+    S->>D: dissect(raw, ts, linktype)
+    D->>L: camada de enlace .parse (Ethernet, Linux SLL ou Loopback, pelo linktype)
+    L-->>D: next_protocol (EtherType ou família)
+    D->>L: IPv4/IPv6.parse
+    L->>C: validar header (só IPv4)
+    D->>L: TCP/UDP/ICMP.parse
     L->>C: validar com pseudo-header
     D-->>S: Packet
     S->>E: publish(Packet)

@@ -1,14 +1,25 @@
 classDiagram
   class Backend {
     <<abstract>>
+    +linktype: int
     +open()
     +read() bytes, timestamp
     +close()
   }
+  class LibpcapBackend {
+    -lib: ctypes.CDLL
+    +list_devices()
+  }
   class LinuxRawSocket
   class PcapReader
+  Backend <|-- LibpcapBackend
   Backend <|-- LinuxRawSocket
   Backend <|-- PcapReader
+
+  class BackendFactory {
+    +open_backend(iface, prefer) Backend
+  }
+  BackendFactory ..> Backend
 
   class Layer {
     <<abstract>>
@@ -20,6 +31,8 @@ classDiagram
     +validate(ctx) ChecksumResult
   }
   Layer <|-- Ethernet
+  Layer <|-- LinuxSLL
+  Layer <|-- Loopback
   Layer <|-- IPv4
   Layer <|-- IPv6
   Layer <|-- TCP
@@ -27,14 +40,17 @@ classDiagram
   Layer <|-- ICMP
 
   class ChecksumResult {
+    +layer: str
     +expected: int
     +computed: int
-    +valid: bool
     +offload_suspected: bool
+    +skipped: bool
+    +valid: bool
   }
 
   class Packet {
     +timestamp: float
+    +linktype: int
     +raw: bytes
     +layers: list~Layer~
     +checksums: list~ChecksumResult~
@@ -44,7 +60,7 @@ classDiagram
   class Dissector {
     -registry: dict
     +register(key, layer_cls)
-    +dissect(raw, ts) Packet
+    +dissect(raw, ts, linktype) Packet
   }
 
   class EventBus {
@@ -60,6 +76,7 @@ classDiagram
     +stop()
   }
 
+  Sniffer --> BackendFactory
   Sniffer --> Backend
   Sniffer --> Dissector
   Sniffer --> EventBus

@@ -1,0 +1,28 @@
+sequenceDiagram
+  participant App as App (TUI/GUI)
+  participant S as Sniffer
+  participant B as Backend
+  participant D as Dissector
+  participant L as Layers
+  participant C as checksum
+  participant E as EventBus
+
+  App->>E: subscribe(callback)
+  App->>S: start()
+  S->>B: open()
+  loop enquanto ativo
+    S->>B: read()
+    B-->>S: raw, ts
+    S->>D: dissect(raw, ts)
+    D->>L: Ethernet.parse
+    L-->>D: next_protocol (EtherType)
+    D->>L: IPv4.parse
+    L->>C: validar header IPv4
+    D->>L: TCP/UDP.parse
+    L->>C: validar com pseudo-header
+    D-->>S: Packet
+    S->>E: publish(Packet)
+    E-->>App: callback(Packet)
+  end
+  App->>S: stop()
+  S->>B: close()

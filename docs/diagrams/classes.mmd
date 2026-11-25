@@ -1,0 +1,69 @@
+classDiagram
+  class Backend {
+    <<abstract>>
+    +open()
+    +read() bytes, timestamp
+    +close()
+  }
+  class LinuxRawSocket
+  class PcapReader
+  Backend <|-- LinuxRawSocket
+  Backend <|-- PcapReader
+
+  class Layer {
+    <<abstract>>
+    +name: str
+    +header_len: int
+    +payload: bytes
+    +parse(data: bytes, ctx) Layer
+    +next_protocol() key
+    +validate(ctx) ChecksumResult
+  }
+  Layer <|-- Ethernet
+  Layer <|-- IPv4
+  Layer <|-- IPv6
+  Layer <|-- TCP
+  Layer <|-- UDP
+  Layer <|-- ICMP
+
+  class ChecksumResult {
+    +expected: int
+    +computed: int
+    +valid: bool
+    +offload_suspected: bool
+  }
+
+  class Packet {
+    +timestamp: float
+    +raw: bytes
+    +layers: list~Layer~
+    +checksums: list~ChecksumResult~
+    +get(layer_type) Layer
+  }
+
+  class Dissector {
+    -registry: dict
+    +register(key, layer_cls)
+    +dissect(raw, ts) Packet
+  }
+
+  class EventBus {
+    +subscribe(callback)
+    +publish(packet)
+  }
+
+  class Sniffer {
+    -backend: Backend
+    -dissector: Dissector
+    -bus: EventBus
+    +start()
+    +stop()
+  }
+
+  Sniffer --> Backend
+  Sniffer --> Dissector
+  Sniffer --> EventBus
+  Dissector --> Layer
+  Dissector --> Packet
+  Packet --> Layer
+  Packet --> ChecksumResult
